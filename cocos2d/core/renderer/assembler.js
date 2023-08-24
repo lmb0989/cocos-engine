@@ -8,15 +8,17 @@ export default class Assembler {
     init (renderComp) {
         this._renderComp = renderComp;
     }
-    
+
     updateRenderData (comp) {
     }
 
     fillBuffers (comp, renderer) {
     }
-    
+
     getVfmt () {
         return vfmtPosUvColor;
+    }
+    onRecycle() {
     }
 }
 
@@ -39,7 +41,7 @@ Assembler.init = function (renderComp) {
     if (assemblerCtor.getConstructor) {
         assemblerCtor = assemblerCtor.getConstructor(renderComp);
     }
-    
+
     if (!renderComp._assembler || renderComp._assembler.constructor !== assemblerCtor) {
         let assembler = assemblerPool.get(assemblerCtor);
         assembler.init(renderComp);

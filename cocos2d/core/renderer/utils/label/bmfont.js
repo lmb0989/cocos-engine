@@ -77,19 +77,22 @@ let _labelHeight = 0;
 let _maxLineWidth = 0;
 
 export default class BmfontAssembler extends Assembler2D {
+
+    _refLetters = [];
     updateRenderData (comp) {
         if (!comp._vertsDirty) return;
         if (_comp === comp) return;
 
         _comp = comp;
-        
+        this.onRecycle();
+
         this._reserveQuads(comp, comp.string.toString().length);
         this._updateFontFamily(comp);
         this._updateProperties(comp);
         this._updateLabelInfo(comp);
         this._updateContent();
         this.updateWorldVerts(comp);
-        
+
         _comp._actualFontSize = _fontSize;
         _comp.node.setContentSize(_contentSize);
 
@@ -126,7 +129,7 @@ export default class BmfontAssembler extends Assembler2D {
         _spacingX = comp.spacingX;
         _overflow = comp.overflow;
         _lineHeight = comp._lineHeight;
-        
+
         _contentSize.width = comp.node.width;
         _contentSize.height = comp.node.height;
 
@@ -143,7 +146,7 @@ export default class BmfontAssembler extends Assembler2D {
         else {
             _isWrapText = comp.enableWrapText;
         }
-        
+
         shareLabelInfo.lineHeight = _lineHeight;
         shareLabelInfo.fontSize = _fontSize;
 
@@ -185,6 +188,23 @@ export default class BmfontAssembler extends Assembler2D {
         } else {
             horizontalKernings.length = 0;
         }
+    }
+
+    onRecycle() {
+        if (this._refLetters.length < 1) {
+            return;
+        }
+
+        for (let hash of this._refLetters) {
+            let letter = shareLabelInfo.fontAtlas.getLetter(hash);
+            if (letter) {
+                letter.refCount--;
+                if (letter.refCount <= 0)
+                    shareLabelInfo.fontAtlas.addUnsedLetterF && shareLabelInfo.fontAtlas.addUnsedLetterF(letter);
+            }
+        }
+        this._refLetters.length = 0;
+
     }
 
     _multilineTextWrap (nextTokenFunc) {
@@ -235,6 +255,12 @@ export default class BmfontAssembler extends Assembler2D {
                     _fntConfig && (atlasName = _fntConfig.atlasName);
                     console.log("Can't find letter definition in texture atlas " + atlasName + " for letter:" + character);
                     continue;
+                }
+                if (letterDef && letterDef.hash) {
+                    // 把当前label引用到的字符添加到引用数组里面，便于执行减引用计数
+                    this._refLetters.push(letterDef.hash);
+                    // 增加引用计数
+                    letterDef.refCount++;
                 }
 
                 let letterX = nextLetterX + letterDef.offsetX * _bmfontScale - shareLabelInfo.margin;
@@ -318,7 +344,7 @@ export default class BmfontAssembler extends Assembler2D {
             if (highestY > 0) {
                 _tailoredTopY = _contentSize.height + highestY;
             }
-    
+
             if (lowestY < -_textDesiredHeight) {
                 _tailoredBottomY = _textDesiredHeight + lowestY;
             }
@@ -463,7 +489,7 @@ export default class BmfontAssembler extends Assembler2D {
             }
 
             _bmfontScale = newFontSize / _originFontSize;
-            
+
             if (!_lineBreakWithoutSpaces) {
                 this._multilineTextWrapByWord();
             } else {
@@ -538,14 +564,14 @@ export default class BmfontAssembler extends Assembler2D {
         let node = _comp.node;
 
         this.verticesCount = this.indicesCount = 0;
-        
+
         // Need to reset dataLength in Canvas rendering mode.
         this._renderData && (this._renderData.dataLength = 0);
 
         let contentSize = _contentSize,
             appx = node._anchorPoint.x * contentSize.width,
             appy = node._anchorPoint.y * contentSize.height;
-        
+
         let ret = true;
         for (let ctr = 0, l = _string.length; ctr < l; ++ctr) {
             let letterInfo = _lettersInfo[ctr];
@@ -627,7 +653,7 @@ export default class BmfontAssembler extends Assembler2D {
 
     _computeAlignmentOffset () {
         _linesOffsetX.length = 0;
-        
+
         switch (_hAlign) {
             case macro.TextAlignment.LEFT:
                 for (let i = 0; i < _numberOfLines; ++i) {

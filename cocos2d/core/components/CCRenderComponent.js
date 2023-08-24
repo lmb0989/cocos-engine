@@ -114,6 +114,10 @@ let RenderComponent = cc.Class({
         }
         materials.length = 0;
 
+        if (this._assembler && this._assembler.onRecycle) {
+            this._assembler.onRecycle();
+        }
+
         cc.pool.assembler.put(this._assembler);
 
         this.disableRender();

@@ -57,6 +57,16 @@ function LetterTexture(char, labelInfo) {
     this._hash = char.charCodeAt(0) + labelInfo.hash;
 }
 
+function calcTextSize(labelInfo, char) {
+    let data = Label._canvasPool.get();
+    let context = data.context;
+    context.font = labelInfo.fontDesc;
+    let width = textUtils.safeMeasureText(context, char, labelInfo.fontDesc);
+    let blank = labelInfo.margin * 2 + bleed;
+    let height = (1 + textUtils.BASELINE_RATIO) * labelInfo.fontSize + blank;
+    return [width, height];
+}
+
 LetterTexture.prototype = {
     constructor: LetterTexture,
 
@@ -126,12 +136,13 @@ LetterTexture.prototype = {
 }
 
 function LetterAtlas (width, height) {
+    this._unusedLetterList = [];
     let texture = new RenderTexture();
     texture.initWithSize(width, height);
     texture.update();
 
     this._fontDefDictionary = new FontAtlas(texture);
-    
+
     this._x = space;
     this._y = space;
     this._nexty = space;
@@ -139,13 +150,15 @@ function LetterAtlas (width, height) {
     this._width = width;
     this._height = height;
 
+    this._safeHeight = 2048 * 0.8;
+
     cc.director.on(cc.Director.EVENT_BEFORE_SCENE_LAUNCH, this.beforeSceneLoad, this);
 }
 
 cc.js.mixin(LetterAtlas.prototype, {
     insertLetterTexture (letterTexture) {
         let texture = letterTexture._texture;
-        let width = texture.width, height = texture.height;        
+        let width = texture.width, height = texture.height;
 
         if ((this._x + width + space) > this._width) {
             this._x = space;
@@ -163,7 +176,7 @@ cc.js.mixin(LetterAtlas.prototype, {
         this._fontDefDictionary._texture.drawTextureAt(texture, this._x, this._y);
 
         this._dirty = true;
-        
+
         let letter = new FontLetterDefinition();
         letter.u = this._x + bleed/2;
         letter.v = this._y + bleed/2;
@@ -174,10 +187,18 @@ cc.js.mixin(LetterAtlas.prototype, {
         letter.xAdvance = letter.w;
         letter.offsetY = letterTexture._offsetY;
 
+        // 字符宽高用于后续被重新复用时判断是否能容纳下新的字符
+        letter.originW = letterTexture._width;
+        letter.originH = letterTexture._height;
+        // hash值是这个TTF字符的唯一标识，由颜色，字号，字体，描边等信息组成
+        letter.hash = letterTexture._hash;
+        // 引用计数用于统计当前字符被引用的次数，判断是否是废弃状态
+        letter.refCount = 0;
+
         this._x += width + space;
 
         this._fontDefDictionary.addLetterDefinitions(letterTexture._hash, letter);
-        
+
         return letter
     },
 
@@ -220,7 +241,7 @@ cc.js.mixin(LetterAtlas.prototype, {
         let texture = new RenderTexture();
         texture.initWithSize(this._width, this._height);
         texture.update();
-        
+
         this._fontDefDictionary._texture = texture;
     },
 
@@ -236,13 +257,93 @@ cc.js.mixin(LetterAtlas.prototype, {
         let hash = char.charCodeAt(0) + labelInfo.hash;
         let letter = this._fontDefDictionary._letterDefinitions[hash];
         if (!letter) {
-            let temp = new LetterTexture(char, labelInfo);
-            temp.updateRenderData();
-            letter = this.insertLetterTexture(temp);
-            temp.destroy();
+            if (this.canInsertLabel(labelInfo, char, false)) {
+                letter = this.insertNewLetter(char, labelInfo);
+            } else {
+                let oldLetter = this.findUnsedLetterFor(char, labelInfo);
+                if (oldLetter != null) {
+                    let letterTexture = new LetterTexture(char, labelInfo);
+                    letterTexture.updateRenderData();
+                    letter = this.replaceLetterTexture(oldLetter, letterTexture, char)
+                    letterTexture.destroy();
+                } else {
+                    if (this.canInsertLabel(labelInfo, char, true)) {
+                        letter = this.insertNewLetter(char, labelInfo);
+                    } else {
+                        cc.error("无法找到合适的图集");
+                    }
+                }
+            }
         }
 
         return letter;
+    },
+
+    insertNewLetter(char, labelInfo) {
+        let temp = new LetterTexture(char, labelInfo);
+        temp.updateRenderData();
+        let letter = this.insertLetterTexture(temp);
+        letter.char = char;
+        temp.destroy();
+        return letter;
+    },
+
+    replaceLetterTexture(oldLetter, letterTexture, char) {
+        let oldHash = oldLetter.hash;
+        let texture = letterTexture._texture;
+
+        this._fontDefDictionary._texture.drawTextureAt(texture, oldLetter.u - bleed / 2, oldLetter.v - bleed / 2);
+        oldLetter.hash = letterTexture._hash;
+        oldLetter.w = letterTexture._width - bleed;
+        oldLetter.h = letterTexture._height - bleed;
+        oldLetter.offsetY = letterTexture._offsetY;
+        oldLetter.xAdvance = oldLetter.w;
+        oldLetter.offsetY = letterTexture._offsetY;
+        oldLetter.refCount = 0;
+        this._dirty = true;
+        this._fontDefDictionary.addLetterDefinitions(letterTexture._hash, oldLetter);
+        this._fontDefDictionary._letterDefinitions[oldHash] = null;
+        return oldLetter;
+    },
+
+    canInsertLabel(labelInfo, char, force) {
+        let sizeArr = calcTextSize(labelInfo, char);
+        let width = sizeArr[0], height = sizeArr[1];
+        let nextY = this._nexty;
+        let thisY = this._y;
+
+        if ((this._x + width + space) > this._width) {
+            thisY = this._nexty;
+        }
+
+        if ((thisY + height) > nextY) {
+            nextY = thisY + height + space;
+        }
+
+        let maxY = force ? this._height : this._safeHeight;
+        if (nextY > maxY) {
+            return false;
+        }
+        return true;
+    },
+
+    addUnsedLetterF(letter){
+        this._unusedLetterList.push(letter);
+    },
+
+    findUnsedLetterFor(char, labelInfo) {
+        if (!this._unusedLetterList || this._unusedLetterList.length == 0) {
+            return null;
+        }
+        let sizeArr = calcTextSize(labelInfo, char);
+        let width = sizeArr[0], height = sizeArr[1];
+        for (let i = 0; i < this._unusedLetterList.length; i++) {
+            let letter = this._unusedLetterList[i];
+            if (letter.refCount <= 0 && letter.originW >= width && letter.originH >= height) {
+                return letter;
+            }
+        }
+        return null;
     }
 });
 
@@ -253,7 +354,7 @@ function computeHash (labelInfo) {
     if (labelInfo.isOutlined && labelInfo.margin > 0) {
         out = out + labelInfo.margin + labelInfo.out.toHEX();
     }
-    
+
     return hashData + labelInfo.fontSize + labelInfo.fontFamily + color + out;
 }
 
@@ -269,7 +370,7 @@ export default class LetterFontAssembler extends WebglBmfontAssembler {
             _shareAtlas = new LetterAtlas(_atlasWidth, _atlasHeight);
             cc.Label._shareAtlas = _shareAtlas;
         }
-        
+
         return _shareAtlas.getTexture();
     }
 
