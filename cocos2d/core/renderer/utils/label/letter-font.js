@@ -136,7 +136,7 @@ LetterTexture.prototype = {
 }
 
 function LetterAtlas (width, height) {
-    this._unusedLetterList = [];
+    this._unusedLetterList = new Set();
     let texture = new RenderTexture();
     texture.initWithSize(width, height);
     texture.update();
@@ -242,6 +242,7 @@ cc.js.mixin(LetterAtlas.prototype, {
         texture.initWithSize(this._width, this._height);
         texture.update();
 
+        this._unusedLetterList.clear();
         this._fontDefDictionary._texture = texture;
     },
 
@@ -298,7 +299,6 @@ cc.js.mixin(LetterAtlas.prototype, {
         oldLetter.h = letterTexture._height - bleed;
         oldLetter.offsetY = letterTexture._offsetY;
         oldLetter.xAdvance = oldLetter.w;
-        oldLetter.offsetY = letterTexture._offsetY;
         oldLetter.refCount = 0;
         this._dirty = true;
         this._fontDefDictionary.addLetterDefinitions(letterTexture._hash, oldLetter);
@@ -328,18 +328,19 @@ cc.js.mixin(LetterAtlas.prototype, {
     },
 
     addUnsedLetterF(letter){
-        this._unusedLetterList.push(letter);
+        this._unusedLetterList.add(letter);
     },
 
     findUnsedLetterFor(char, labelInfo) {
-        if (!this._unusedLetterList || this._unusedLetterList.length == 0) {
+        if (!this._unusedLetterList || this._unusedLetterList.size == 0) {
             return null;
         }
         let sizeArr = calcTextSize(labelInfo, char);
         let width = sizeArr[0], height = sizeArr[1];
-        for (let i = 0; i < this._unusedLetterList.length; i++) {
-            let letter = this._unusedLetterList[i];
+
+        for (let letter of this._unusedLetterList) {
             if (letter.refCount <= 0 && letter.originW >= width && letter.originH >= height) {
+                this._unusedLetterList.delete(letter);
                 return letter;
             }
         }
