@@ -50892,6 +50892,7 @@
         var texture = new RenderTexture();
         texture.initWithSize(this._width, this._height);
         texture.update();
+        this._unusedLetterList.clear();
         this._fontDefDictionary._texture = texture;
       },
       getLetter: function getLetter(key) {
@@ -50931,7 +50932,6 @@
         oldLetter.h = letterTexture._height - bleed;
         oldLetter.offsetY = letterTexture._offsetY;
         oldLetter.xAdvance = oldLetter.w;
-        oldLetter.offsetY = letterTexture._offsetY;
         oldLetter.refCount = 0;
         this._dirty = true;
         this._fontDefDictionary.addLetterDefinitions(letterTexture._hash, oldLetter);
@@ -50958,7 +50958,10 @@
         var width = sizeArr[0], height = sizeArr[1];
         for (var _iterator = _createForOfIteratorHelperLoose(this._unusedLetterList), _step; !(_step = _iterator()).done; ) {
           var letter = _step.value;
-          if (letter.refCount <= 0 && letter.originW >= width && letter.originH >= height) return letter;
+          if (letter.refCount <= 0 && letter.originW >= width && letter.originH >= height) {
+            this._unusedLetterList["delete"](letter);
+            return letter;
+          }
         }
         return null;
       }
@@ -50967,7 +50970,7 @@
       var hashData = "";
       var color = labelInfo.color.toHEX();
       var out = "";
-      labelInfo.isOutlined && labelInfo.margin > 0 && (out = out + labelInfo.margin + labelInfo.out.toHEX());
+      labelInfo.isOutlined && labelInfo.margin > 0 && (out = out + labelInfo.margin + labelInfo.out.toHEX("#rrggbbaa"));
       return hashData + labelInfo.fontSize + labelInfo.fontFamily + color + out;
     }
     var _shareAtlas = null;
@@ -50995,7 +50998,7 @@
           shareLabelInfo.isOutlined = true;
           shareLabelInfo.margin = outline.width;
           shareLabelInfo.out = outline.color.clone();
-          shareLabelInfo.out.a = outline.color.a * comp.node.color.a / 255;
+          shareLabelInfo.out.a = outline.color.a;
         } else {
           shareLabelInfo.isOutlined = false;
           shareLabelInfo.margin = 0;
