@@ -150,7 +150,7 @@ function LetterAtlas (width, height) {
     this._width = width;
     this._height = height;
 
-    this._safeHeight = 2048 * 0.8;
+    this._safeHeight = 2048 * 0.9;
 
     cc.director.on(cc.Director.EVENT_BEFORE_SCENE_LAUNCH, this.beforeSceneLoad, this);
 }
@@ -307,21 +307,21 @@ cc.js.mixin(LetterAtlas.prototype, {
     },
 
     canInsertLabel(labelInfo, char, force) {
-        let sizeArr = calcTextSize(labelInfo, char);
-        let width = sizeArr[0], height = sizeArr[1];
-        let nextY = this._nexty;
-        let thisY = this._y;
-
-        if ((this._x + width + space) > this._width) {
-            thisY = this._nexty;
-        }
-
-        if ((thisY + height) > nextY) {
-            nextY = thisY + height + space;
-        }
+        // let sizeArr = calcTextSize(labelInfo, char);
+        // let width = sizeArr[0], height = sizeArr[1];
+        // let nextY = this._nexty;
+        // let thisY = this._y;
+        //
+        // if ((this._x + width + space) > this._width) {
+        //     thisY = this._nexty;
+        // }
+        //
+        // if ((thisY + height) > nextY) {
+        //     nextY = thisY + height + space;
+        // }
 
         let maxY = force ? this._height : this._safeHeight;
-        if (nextY > maxY) {
+        if (this._nexty > maxY) {
             return false;
         }
         return true;

@@ -50830,7 +50830,7 @@
       this._nexty = space;
       this._width = width;
       this._height = height;
-      this._safeHeight = 1638.4;
+      this._safeHeight = 1843.2;
       cc.director.on(cc.Director.EVENT_BEFORE_SCENE_LAUNCH, this.beforeSceneLoad, this);
     }
     cc.js.mixin(LetterAtlas.prototype, {
@@ -50939,14 +50939,8 @@
         return oldLetter;
       },
       canInsertLabel: function canInsertLabel(labelInfo, _char7, force) {
-        var sizeArr = calcTextSize(labelInfo, _char7);
-        var width = sizeArr[0], height = sizeArr[1];
-        var nextY = this._nexty;
-        var thisY = this._y;
-        this._x + width + space > this._width && (thisY = this._nexty);
-        thisY + height > nextY && (nextY = thisY + height + space);
         var maxY = force ? this._height : this._safeHeight;
-        if (nextY > maxY) return false;
+        if (this._nexty > maxY) return false;
         return true;
       },
       addUnsedLetterF: function addUnsedLetterF(letter) {
