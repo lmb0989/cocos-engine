@@ -353,8 +353,11 @@ function computeHash (labelInfo) {
     let color = labelInfo.color.toHEX();
     let out = '';
     if (labelInfo.isOutlined && labelInfo.margin > 0) {
-        // out = out + labelInfo.margin + labelInfo.out.toHEX();
-        out = out + labelInfo.margin + labelInfo.out.toHEX("#rrggbbaa");
+        if (cc.sys.isNative) {
+            out = out + labelInfo.margin + labelInfo.out.toHEX();
+        } else {
+            out = out + labelInfo.margin + labelInfo.out.toHEX("#rrggbbaa");
+        }
     }
 
     return hashData + labelInfo.fontSize + labelInfo.fontFamily + color + out;
@@ -386,8 +389,11 @@ export default class LetterFontAssembler extends WebglBmfontAssembler {
             shareLabelInfo.isOutlined = true;
             shareLabelInfo.margin = outline.width;
             shareLabelInfo.out = outline.color.clone();
-            // shareLabelInfo.out.a = outline.color.a * comp.node.color.a / 255.0;
-            shareLabelInfo.out.a = outline.color.a;
+            if (cc.sys.isNative) {
+                shareLabelInfo.out.a = outline.color.a * comp.node.color.a / 255.0;
+            } else {
+                shareLabelInfo.out.a = outline.color.a;
+            }
         }
         else {
             shareLabelInfo.isOutlined = false;

@@ -50964,7 +50964,7 @@
       var hashData = "";
       var color = labelInfo.color.toHEX();
       var out = "";
-      labelInfo.isOutlined && labelInfo.margin > 0 && (out = out + labelInfo.margin + labelInfo.out.toHEX("#rrggbbaa"));
+      labelInfo.isOutlined && labelInfo.margin > 0 && (out = cc.sys.isNative ? out + labelInfo.margin + labelInfo.out.toHEX() : out + labelInfo.margin + labelInfo.out.toHEX("#rrggbbaa"));
       return hashData + labelInfo.fontSize + labelInfo.fontFamily + color + out;
     }
     var _shareAtlas = null;
@@ -50992,7 +50992,7 @@
           shareLabelInfo.isOutlined = true;
           shareLabelInfo.margin = outline.width;
           shareLabelInfo.out = outline.color.clone();
-          shareLabelInfo.out.a = outline.color.a;
+          cc.sys.isNative ? shareLabelInfo.out.a = outline.color.a * comp.node.color.a / 255 : shareLabelInfo.out.a = outline.color.a;
         } else {
           shareLabelInfo.isOutlined = false;
           shareLabelInfo.margin = 0;
