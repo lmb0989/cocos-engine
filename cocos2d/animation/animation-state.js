@@ -328,6 +328,12 @@ function simpleProcess () {
 
 proto.update = function (delta) {
     // calculate delay time
+    if (this._target) {
+        delta *= cc.director.getSpeedByNode(this._target.node);
+    }
+    if (delta <=0) {
+        return;
+    }
 
     if (this._delayTime > 0) {
         this._delayTime -= delta;

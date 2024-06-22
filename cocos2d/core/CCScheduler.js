@@ -426,19 +426,24 @@ cc.Scheduler.prototype = {
         }
 
         // Iterate over all the custom selectors
-        var elt, arr = this._arrayForTimers;
+        var elt, arr = this._arrayForTimers, time = dt;
         for(i=0; i<arr.length; i++){
             elt = arr[i];
+            time = dt;
             this._currentTarget = elt;
             this._currentTargetSalvaged = false;
 
             if (!elt.paused){
+                if (elt.target && elt.target.node) {
+                    time = dt * cc.director.getSpeedByNode(elt.target.node);
+                }
+
                 // The 'timers' array may change while inside this loop
                 for (elt.timerIndex = 0; elt.timerIndex < elt.timers.length; ++(elt.timerIndex)){
                     elt.currentTimer = elt.timers[elt.timerIndex];
                     elt.currentTimerSalvaged = false;
 
-                    elt.currentTimer.update(dt);
+                    elt.currentTimer.update(time);
                     elt.currentTimer = null;
                 }
             }

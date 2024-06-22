@@ -3101,7 +3101,7 @@
         return ret;
       },
       update: function update(dt) {
-        var locTargets = this._arrayTargets, locCurrTarget;
+        var locTargets = this._arrayTargets, locCurrTarget, time;
         for (var elt = 0; elt < locTargets.length; elt++) {
           this._currentTarget = locTargets[elt];
           locCurrTarget = this._currentTarget;
@@ -3110,7 +3110,8 @@
             for (locCurrTarget.actionIndex = 0; locCurrTarget.actionIndex < locCurrTarget.actions.length; locCurrTarget.actionIndex++) {
               locCurrTarget.currentAction = locCurrTarget.actions[locCurrTarget.actionIndex];
               if (!locCurrTarget.currentAction) continue;
-              locCurrTarget.currentAction.step(dt * (locCurrTarget.currentAction._speedMethod ? locCurrTarget.currentAction._speed : 1));
+              time = dt * cc.director.getSpeedByNode(locCurrTarget.currentAction.target) * (locCurrTarget.currentAction._speedMethod ? locCurrTarget.currentAction._speed : 1);
+              time > 0 && locCurrTarget.currentAction.step(time);
               if (locCurrTarget.currentAction && locCurrTarget.currentAction.isDone()) {
                 locCurrTarget.currentAction.stop();
                 var action = locCurrTarget.currentAction;
@@ -4157,6 +4158,8 @@
       }
     }
     proto.update = function(delta) {
+      this._target && (delta *= cc.director.getSpeedByNode(this._target.node));
+      if (delta <= 0) return;
       if (this._delayTime > 0) {
         this._delayTime -= delta;
         if (this._delayTime > 0) return;
@@ -18167,6 +18170,7 @@
       this._compScheduler = null;
       this._nodeActivator = null;
       this._actionManager = null;
+      this._groupSpeed = {};
       var self = this;
       game.on(game.EVENT_SHOW, (function() {
         self._lastUpdate = performance.now();
@@ -18473,6 +18477,19 @@
       },
       __fastOff: function __fastOff(type, callback, target) {
         this.off(type, callback, target);
+      },
+      setSpeed: function setSpeed(group, speed) {
+        speed >= 0 && (this._groupSpeed[group] = speed);
+      },
+      getSpeed: function getSpeed(group) {
+        if (group) {
+          var speed = this._groupSpeed[group];
+          return speed >= 0 ? speed : 1;
+        }
+        return 1;
+      },
+      getSpeedByNode: function getSpeedByNode(node) {
+        return this.getSpeed(node ? node._speedGroup : null);
       }
     };
     cc.js.addon(cc.Director.prototype, EventTarget.prototype);
@@ -20940,16 +20957,20 @@
           entry = list[i];
           entry.paused || entry.markedForDeletion || entry.target.update(dt);
         }
-        var elt, arr = this._arrayForTimers;
+        var elt, arr = this._arrayForTimers, time = dt;
         for (i = 0; i < arr.length; i++) {
           elt = arr[i];
+          time = dt;
           this._currentTarget = elt;
           this._currentTargetSalvaged = false;
-          if (!elt.paused) for (elt.timerIndex = 0; elt.timerIndex < elt.timers.length; ++elt.timerIndex) {
-            elt.currentTimer = elt.timers[elt.timerIndex];
-            elt.currentTimerSalvaged = false;
-            elt.currentTimer.update(dt);
-            elt.currentTimer = null;
+          if (!elt.paused) {
+            elt.target && elt.target.node && (time = dt * cc.director.getSpeedByNode(elt.target.node));
+            for (elt.timerIndex = 0; elt.timerIndex < elt.timers.length; ++elt.timerIndex) {
+              elt.currentTimer = elt.timers[elt.timerIndex];
+              elt.currentTimerSalvaged = false;
+              elt.currentTimer.update(time);
+              elt.currentTimer = null;
+            }
           }
           if (this._currentTargetSalvaged && 0 === this._currentTarget.timers.length) {
             this._removeHashElement(this._currentTarget);
@@ -28645,8 +28666,8 @@
       };
     }
     var invokeStart = createInvokeImpl("c.start();c._objFlags|=" + IsStartCalled, false, IsStartCalled);
-    var invokeUpdate = createInvokeImpl("c.update(dt)", true);
-    var invokeLateUpdate = createInvokeImpl("c.lateUpdate(dt)", true);
+    var invokeUpdate = createInvokeImpl("c._toUpdate(dt)", true);
+    var invokeLateUpdate = createInvokeImpl("c._toLaterUpdate(dt)", true);
     function ctor() {
       this.startInvoker = new OneOffInvoker(invokeStart);
       this.updateInvoker = new ReusableInvoker(invokeUpdate);
@@ -29864,6 +29885,14 @@
       onFocusInEditor: null,
       onLostFocusInEditor: null,
       resetInEditor: null,
+      _toUpdate: function _toUpdate(dt) {
+        var time = dt * cc.director.getSpeedByNode(this.node);
+        time > 0 && this.update(time);
+      },
+      _toLaterUpdate: function _toLaterUpdate(dt) {
+        var time = dt * cc.director.getSpeedByNode(this.node);
+        time > 0 && this.lateUpdate(time);
+      },
       addComponent: function addComponent(typeOrClassName) {
         return this.node.addComponent(typeOrClassName);
       },

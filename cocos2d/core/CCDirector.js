@@ -136,6 +136,10 @@ cc.Director = function () {
     // Action manager
     this._actionManager = null;
 
+    // group speed
+    // 节点加速/减速
+    this._groupSpeed = {};  // {[key=group]: speed}
+
     var self = this;
     game.on(game.EVENT_SHOW, function () {
         self._lastUpdate = performance.now();
@@ -919,6 +923,22 @@ cc.Director.prototype = {
     __fastOff: function (type, callback, target) {
         this.off(type, callback, target);
     },
+
+    setSpeed(group, speed) {
+        if (speed >= 0) {
+            this._groupSpeed[group] = speed;
+        }
+    },
+    getSpeed(group) {
+        if (group) {
+            let speed = this._groupSpeed[group];
+            return speed >= 0 ? speed : 1;
+        }
+        return 1;
+    },
+    getSpeedByNode(node) {
+        return this.getSpeed(node ? node._speedGroup : null);
+    }
 };
 
 // Event target

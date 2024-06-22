@@ -466,7 +466,7 @@ cc.ActionManager.prototype = {
      * @param {Number} dt delta time in seconds
      */
     update: function (dt) {
-        var locTargets = this._arrayTargets , locCurrTarget;
+        var locTargets = this._arrayTargets , locCurrTarget, time;
         for (var elt = 0; elt < locTargets.length; elt++) {
             this._currentTarget = locTargets[elt];
             locCurrTarget = this._currentTarget;
@@ -479,8 +479,9 @@ cc.ActionManager.prototype = {
                         continue;
 
                     //use for speed
-                    locCurrTarget.currentAction.step(dt * ( locCurrTarget.currentAction._speedMethod ? locCurrTarget.currentAction._speed : 1 ) );
-                    
+                    time = dt * cc.director.getSpeedByNode(locCurrTarget.currentAction.target) * ( locCurrTarget.currentAction._speedMethod ? locCurrTarget.currentAction._speed : 1 );
+                    time > 0 && locCurrTarget.currentAction.step(time);
+
                     if (locCurrTarget.currentAction && locCurrTarget.currentAction.isDone()) {
                         locCurrTarget.currentAction.stop();
                         var action = locCurrTarget.currentAction;

@@ -264,30 +264,30 @@ var invokeStart = CC_SUPPORT_JIT ?
         }
     );
 var invokeUpdate = CC_SUPPORT_JIT ?
-    createInvokeImpl('c.update(dt)', true) :
+    createInvokeImpl('c._toUpdate(dt)', true) :
     createInvokeImpl(function (c, dt) {
-            c.update(dt);
+            c._toUpdate(dt);
         },
         true,
         undefined,
         function (iterator, dt) {
             var array = iterator.array;
             for (iterator.i = 0; iterator.i < array.length; ++iterator.i) {
-                array[iterator.i].update(dt);
+                array[iterator.i]._toUpdate(dt);
             }
         }
     );
 var invokeLateUpdate = CC_SUPPORT_JIT ?
-    createInvokeImpl('c.lateUpdate(dt)', true) :
+    createInvokeImpl('c._toLaterUpdate(dt)', true) :
     createInvokeImpl(function (c, dt) {
-            c.lateUpdate(dt);
+            c._toLaterUpdate(dt);
         },
         true,
         undefined,
         function (iterator, dt) {
             var array = iterator.array;
             for (iterator.i = 0; iterator.i < array.length; ++iterator.i) {
-                array[iterator.i].lateUpdate(dt);
+                array[iterator.i]._toLaterUpdate(dt);
             }
         }
     );

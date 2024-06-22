@@ -335,6 +335,15 @@ var Component = cc.Class({
 
     // PUBLIC
 
+    _toUpdate(dt) {
+        let time = dt * cc.director.getSpeedByNode(this.node);
+        time > 0 && this.update(time);
+    },
+    _toLaterUpdate(dt) {
+        let time = dt * cc.director.getSpeedByNode(this.node);
+        time > 0 && this.lateUpdate(time);
+    },
+
     /**
      * !#en Adds a component class to the node. You can also add component to node by passing in the name of the script.
      * !#zh 向节点添加一个组件类，你还可以通过传入脚本的名称来添加组件。
