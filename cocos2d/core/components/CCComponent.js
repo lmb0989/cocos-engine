@@ -337,11 +337,11 @@ var Component = cc.Class({
 
     _toUpdate(dt) {
         let time = dt * cc.director.getSpeedByNode(this.node);
-        time > 0 && this.update(time);
+        time >= 0 && this.update(time);
     },
     _toLaterUpdate(dt) {
         let time = dt * cc.director.getSpeedByNode(this.node);
-        time > 0 && this.lateUpdate(time);
+        time >= 0 && this.lateUpdate(time);
     },
 
     /**

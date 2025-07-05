@@ -22080,7 +22080,7 @@
           var dirname = cc.path.dirname(url);
           var basename = cc.path.basename(url);
           url = dirname + "." + hashValue + "/" + basename;
-        } else url = url.replace(/.*[/\\][0-9a-fA-F]{2}[/\\]([0-9a-fA-F-]{8,})/, (function(match, uuid) {
+        } else url = url.replace(/.*[\/\\][0-9a-fA-F]{2}[\/\\]([0-9a-fA-F-]{8,})/, (function(match, uuid) {
           return match + "." + hashValue;
         }));
         return url;
@@ -23240,7 +23240,7 @@
     var helper = {
       decodeUuid: require("../utils/decode-uuid"),
       getUuidFromURL: (function() {
-        var _uuidRegex = /.*[/\\][0-9a-fA-F]{2}[/\\]([0-9a-fA-F-]{8,})/;
+        var _uuidRegex = /.*[\/\\][0-9a-fA-F]{2}[\/\\]([0-9a-fA-F-]{8,})/;
         return function(url) {
           var matches = url.match(_uuidRegex);
           if (matches) return matches[1];
@@ -29903,11 +29903,11 @@
       resetInEditor: null,
       _toUpdate: function _toUpdate(dt) {
         var time = dt * cc.director.getSpeedByNode(this.node);
-        time > 0 && this.update(time);
+        time >= 0 && this.update(time);
       },
       _toLaterUpdate: function _toLaterUpdate(dt) {
         var time = dt * cc.director.getSpeedByNode(this.node);
-        time > 0 && this.lateUpdate(time);
+        time >= 0 && this.lateUpdate(time);
       },
       addComponent: function addComponent(typeOrClassName) {
         return this.node.addComponent(typeOrClassName);
